@@ -12,12 +12,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TCPProtocol{
-    private static final int WAITING = 0;
-    private static final int CHECKINGURL = 1;
-    private static final int FOUNDMAIL = 2;
-    private static final int NOMAIL = 3;
+    private static final int WAITING = 0;   //Greetings
+    private static final int CHECKINGURL = 1;   //Checks the given URL
+    private static final int FOUNDMAIL = 2; //Email(s) was found
+    private static final int NOMAIL = 3;    //No email(s) was found
+    private static final int MORE = 4;  //Client wants to look up more
+    private static final int KILL = 5;  //Server kills the connection
+    ArrayList<String> emailMatches = new ArrayList<>(); //The found email(s)
+    private final char TERMINATIONCHAR = '\n';
 
-    private static final int MORE = 4;
 
     private int state = WAITING;
 
@@ -29,12 +32,14 @@ public class TCPProtocol{
         String theOutput = null;
 
         if(state == WAITING){
-            theOutput = "Please provide an URL for me to look at.";
+            System.out.println("STATE: WAITING");
+            theOutput = "APlease provide an URL for me to look at.";
             state = CHECKINGURL;
             return theOutput;
         }
         else if(state == CHECKINGURL){
-            theOutput = "6 Looking up the provided URL and scanning for Email addresses.";
+            System.out.println("STATE: CHECKING URL");
+            theOutput = "BLooking up the provided URL and scanning for Email addresses.";
 
             if(theInput != null){
                 try{
@@ -48,8 +53,6 @@ public class TCPProtocol{
 
                     Pattern emailPattern = Pattern.compile("[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})");
 
-                    ArrayList<String> emailMatches = new ArrayList<>();
-
 
                     while((urlResponse = readURL.readLine()) != null){
                         Matcher regExMatcher = emailPattern.matcher(urlResponse);
@@ -59,30 +62,44 @@ public class TCPProtocol{
                         }
                     }
                     if(emailMatches.size() > 0){
-                        System.out.println("0" + emailMatches.size() + " Emails found! Sending to client");
-                        state = MORE;
-                        return "0" + emailMatches.toString();
+                        System.out.println(emailMatches.size() + " Emails found! Sending to client");
+                        state = FOUNDMAIL;
 
                     }else{
                         state = NOMAIL;
                     }
                 }catch (MalformedURLException e){
-                    System.err.println("Error, not a url");
+                    System.err.println("Error, not a URL");
+                    theOutput = "EError, that was not a URL";
                     state = MORE;
                 }catch (IOException e){
                     System.err.println("Error for I/O");
+                    theOutput = "EError for I/O";
                 }
             }
         }
 
-        else if(state == NOMAIL){
-            theOutput = "1 No mail was found";
+        if(state == FOUNDMAIL){
+            System.out.println("STATE: FOUNDMAIL");
             state = WAITING;
+            return "0" + emailMatches.toString();
+        }
 
+
+        else if(state == NOMAIL){
+            System.out.println("STATE: NOMAIL");
+            theOutput = "1No mail was found";
+            state = WAITING;
         }
         else if(state == MORE){
+            System.out.println("STATE: MORE");
             state = WAITING;
+            //System.out.println("Client requesting to look up more URL");
         }
-        return theOutput;
+
+        else if(state == KILL){
+            theOutput = "K";
+        }
+        return theOutput + TERMINATIONCHAR;
     }
 }

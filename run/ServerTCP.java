@@ -19,25 +19,18 @@ public class ServerTCP {
             //Server socket
             ServerSocket serverSocket = new ServerSocket(portNumber);
 
-            //Client
-            Socket clientSocket = serverSocket.accept();
-
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         ){
+            while (true){
+                try{
+                    Socket clientSocket = serverSocket.accept();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            String inputLine, outputLine;
-            TCPProtocol protocol = new TCPProtocol();
-            outputLine = protocol.processInput(null);
-            out.println(outputLine);
-
-            while((inputLine = in.readLine()) != null){
-                outputLine = protocol.processInput(inputLine);
-
-                out.println(outputLine);
-
-                if(inputLine.equalsIgnoreCase("more")){
-                    protocol.setState(0);
+                    ClientHandler client = new ClientHandler(clientSocket, in, out);
+                    client.start();
+                }catch (Exception e){
+                    e.printStackTrace();
+                    System.out.println("Connection Error");
                 }
             }
         }
