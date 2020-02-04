@@ -2,12 +2,28 @@ package run;
 
 import java.io.*;
 import java.net.*;
+import java.nio.Buffer;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 
-public class ClientTCP {
+/*
+General rule for Client-Server communication is that the Client reads the servers "Server Code" which tells it
+what to anticipate, and the read the message. The Server Code guides it through the process.
+ */
+
+public class ClientTCP extends Thread{
+
+    private String hostName;
+    private int portNumber;
+
+
+    ClientTCP(String hostName, int portNumber){
+        this.hostName = hostName;
+        this.portNumber = portNumber;
+    }
 
 
     public List<String> gatherMails(String emails){
@@ -22,24 +38,23 @@ public class ClientTCP {
     }
 
 
-
-
     public static void main(String[] args) throws IOException {
 
         String hostName = "127.0.0.1";  //Host
         int portNumber = 5555;
         final char TERMINATIONCHAR = '\n';
 
+
         if(args.length > 0){
-            if(args[0] != null){
-                hostName = args[0];
-                if(args[1] !=  null){
-                    portNumber = Integer.parseInt(args[1]);
-                }
+            hostName = args[0];
+
+            if(args[1] != null){
+                portNumber = Integer.parseInt(args[1]);
             }
         }
 
-        ClientTCP clientMethods = new ClientTCP();
+        ClientTCP client = new ClientTCP(hostName, portNumber);
+
 
         System.out.println("Welcome, trying to establishing connection to server on " + hostName + ":" + portNumber);
 
@@ -51,61 +66,51 @@ public class ClientTCP {
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(),true);
 
             //Back to client
-            BufferedReader fromServer =  new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            BufferedReader in =  new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             //Read from client, input
             BufferedReader toServer = new BufferedReader(new InputStreamReader(System.in));
-            )
-        {
-            String userInput = "";
+            ) {
+            //User input, in client
+            BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
+
+            String fromUser = "";
+            String fromServer = "";
             char serverCode = 'æ';
             List<String> emailMatches = new ArrayList<>();
 
-            //makes first contact
-            System.out.println(fromServer.readLine());
-            while ((userInput = toServer.readLine()) != null) {
-                out.println(userInput + TERMINATIONCHAR);
-                serverCode = (char) fromServer.read();
-
-
-
-                if(serverCode == '5'){
-                    System.out.println(fromServer.readLine());
+            while((fromServer = in.readLine()) != null){
+                if(fromServer.charAt(0) == 'A' ||fromServer.charAt(0) == 'B' || fromServer.charAt(0) == 'E'){
+                    System.out.println(fromServer.substring(1));
                 }
-                if(serverCode == '6'){
-                    System.out.println(fromServer.readLine());
-                    System.out.println(fromServer.readLine());
+
+                if(fromServer.equals("K")){
+                    clientSocket.shutdownOutput();
+                    break;
                 }
-                if(serverCode == '0'){
-                    System.out.println("Code 0 - E-mail addresses found: (type 'more' to look up more URLs)");
-                    emailMatches = clientMethods.gatherMails(fromServer.readLine());
+
+                if(fromServer.charAt(0) == '0'){
+                    System.out.println("Code 0 - E-mail addresses found:");
+                    emailMatches = client.gatherMails(fromServer.substring(1));
                     emailMatches.forEach(System.out::println);
                 }
-                if(serverCode == '1'){
-                    System.out.println(serverCode);
+
+                if(fromServer.charAt(0) == '1'){
                     System.out.println("Code 1 - No Email addresses found on the page.");
                 }
 
-            }
-            //serverCode is in ASCII - CODE 0
-            if(serverCode == 48){
-                System.out.println("Code 0 - E-mail addresses found:");
-                emailMatches.forEach(System.out::println);
-
-            }else if(serverCode == 49){
-                System.out.println("Code 1 - No Email addresses found on the page.");
-            }else{
-                System.out.println("Code 2 - Server couldn't find the webpage");
+                fromUser = stdIn.readLine();
+                if(fromUser != null){
+                    System.out.println("Client: " + fromUser);
+                    out.println(fromUser);
+                }
             }
 
         }
         catch (UnknownHostException e) {
             System.err.println("Unknown host " + hostName);
             System.exit(1);
-        } catch (MalformedURLException e){
-            System.err.println("Please provide an URL");
-
-        }catch (IOException e) {
+        } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to " + hostName);
             System.exit(1);
         }
