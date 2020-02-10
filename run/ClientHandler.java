@@ -8,17 +8,19 @@ Class that creates new threads for every client that connects to server
  */
 
 public class ClientHandler extends Thread{
+
     final Socket s;
+    int clientID;
     String line = null;
     BufferedReader in;
     PrintWriter out;
 
 
-    public ClientHandler(Socket s, BufferedReader in, PrintWriter out){
+    public ClientHandler(Socket s, BufferedReader in, PrintWriter out, int clientID){
         this.s = s;
         this.in = in;
         this.out = out;
-
+        this.clientID = clientID;
     }
 
     @Override
@@ -39,9 +41,6 @@ public class ClientHandler extends Thread{
                     break;
                 }
 
-                if(inputLine.equalsIgnoreCase("more")){
-                    protocol.setState(0);
-                }
             }
 
         }catch (IOException e){

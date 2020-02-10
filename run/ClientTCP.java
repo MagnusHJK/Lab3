@@ -2,16 +2,14 @@ package run;
 
 import java.io.*;
 import java.net.*;
-import java.nio.Buffer;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 /*
-General rule for Client-Server communication is that the Client reads the servers "Server Code" which tells it
-what to anticipate, and the read the message. The Server Code guides it through the process.
+Client
  */
 
 public class ClientTCP extends Thread{
@@ -77,26 +75,34 @@ public class ClientTCP extends Thread{
             String fromUser = "";
             String fromServer = "";
             char serverCode = 'æ';
-            List<String> emailMatches = new ArrayList<>();
 
             while((fromServer = in.readLine()) != null){
+                if(fromServer.length() == 0){
+                    TimeUnit.SECONDS.sleep(5);
+                }
                 if(fromServer.charAt(0) == 'A' ||fromServer.charAt(0) == 'B' || fromServer.charAt(0) == 'E'){
-                    System.out.println(fromServer.substring(1));
+                    System.out.println("Server: "+ fromServer.substring(1));
                 }
 
-                if(fromServer.equals("K")){
+                else if(fromServer.equals("K")){
                     clientSocket.shutdownOutput();
+                    System.out.println("CONNECTION IS KILLED");
                     break;
                 }
 
-                if(fromServer.charAt(0) == '0'){
+                else if(fromServer.charAt(0) == '0'){
                     System.out.println("Code 0 - E-mail addresses found:");
+
+                    List<String> emailMatches = new ArrayList<>();
                     emailMatches = client.gatherMails(fromServer.substring(1));
                     emailMatches.forEach(System.out::println);
+
+                    System.out.println("Type \"more\" to look up again, or \"end\" if you are done.");
                 }
 
-                if(fromServer.charAt(0) == '1'){
+                else if(fromServer.charAt(0) == '1'){
                     System.out.println("Code 1 - No Email addresses found on the page.");
+                    System.out.println("Type \"more\" to look up again, or \"end\" if you are done.");
                 }
 
                 fromUser = stdIn.readLine();
@@ -105,7 +111,6 @@ public class ClientTCP extends Thread{
                     out.println(fromUser);
                 }
             }
-
         }
         catch (UnknownHostException e) {
             System.err.println("Unknown host " + hostName);
@@ -113,7 +118,8 @@ public class ClientTCP extends Thread{
         } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to " + hostName);
             System.exit(1);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
-
 }

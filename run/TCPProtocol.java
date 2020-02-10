@@ -41,6 +41,9 @@ public class TCPProtocol{
             System.out.println("STATE: CHECKING URL");
             theOutput = "BLooking up the provided URL and scanning for Email addresses.";
 
+            if(emailMatches.size() > 0)
+                emailMatches.clear();
+
             if(theInput != null){
                 try{
                     URL url = new URL(theInput);
@@ -50,6 +53,7 @@ public class TCPProtocol{
                     InputStream inURL = urlConnection.getInputStream();
                     BufferedReader readURL = new BufferedReader(new InputStreamReader(inURL));
                     String urlResponse = "";
+
 
                     Pattern emailPattern = Pattern.compile("[_A-Za-z0-9-]+(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})");
 
@@ -81,7 +85,7 @@ public class TCPProtocol{
 
         if(state == FOUNDMAIL){
             System.out.println("STATE: FOUNDMAIL");
-            state = WAITING;
+            state = MORE;
             return "0" + emailMatches.toString();
         }
 
@@ -89,17 +93,24 @@ public class TCPProtocol{
         else if(state == NOMAIL){
             System.out.println("STATE: NOMAIL");
             theOutput = "1No mail was found";
-            state = WAITING;
-        }
-        else if(state == MORE){
-            System.out.println("STATE: MORE");
-            state = WAITING;
-            //System.out.println("Client requesting to look up more URL");
+            state = MORE;
+            return theOutput;
         }
 
-        else if(state == KILL){
+        if(state == MORE){
+            System.out.println("STATE: MORE");
+            if(theInput.equalsIgnoreCase("more")){
+                theOutput = "APlease provide an URL for me to look at.";
+                state = CHECKINGURL;
+                return theOutput;
+            }else{
+                state = KILL;
+            }
+        }
+
+        if(state == KILL){
             theOutput = "K";
         }
-        return theOutput + TERMINATIONCHAR;
+        return theOutput;
     }
 }
